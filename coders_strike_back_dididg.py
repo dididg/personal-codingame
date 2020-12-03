@@ -1,3 +1,5 @@
+## Deterministic solution
+
 import sys
 import math
 
