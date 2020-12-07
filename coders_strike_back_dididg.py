@@ -1,15 +1,17 @@
 ## GA solution
 
-#########################################################################################################################################
+###################################################################################################################################################################
 ## Imports
 
 import sys
 import math
 import numpy as np
+import random as rd
 
-#########################################################################################################################################
+###################################################################################################################################################################
 ## Classes
 
+###################################################################################################################################################################
 class Point:
     def __init__(self, x, y):
 		self.x = x
@@ -40,6 +42,10 @@ class Point:
 		return Point(cx, cy)
 
 	
+	
+	
+	
+###################################################################################################################################################################
 class Unit(Point):
 	def __init__(self, id, r, vx, vy):
 		super.__init__(self, vx, vy)
@@ -108,7 +114,7 @@ class Unit(Point):
 		# if collision between pods, bounce (perfect elastic collisions with 120 half-momentum)
 		if isinstance(u, Checkpoint):
         	# Collision with a checkpoint
-        	self.bounceWithCheckpoint(u)
+        	u.bounce(self)
 		else :
 			# If a pod has its shield active its mass is 10 otherwise it's 1
 			m1 = 10. if this.shield else 1.
@@ -147,12 +153,20 @@ class Unit(Point):
 			u.vx += fx / m2
 			u.vy += fy / m2
 
+			
+			
+			
+###################################################################################################################################################################	
 class Checkpoint(Unit):
 	def __init__(self, id, vx, vy):
 		super.__init__(self, id, R_CHECKPOINT, vx, vy)
 				
-	def bounce(self, p)
+	def bounce(self, p):
+		return
 	
+	
+	
+###################################################################################################################################################################
 class Pod(Unit): 
 	def __init__(self, id, x, y, angle, nextCheckpointId, checked, timeout, partner, shield):
 		super.__init__(self, id, R_POD, x, y)
@@ -234,30 +248,98 @@ class Pod(Unit):
 		self.move(1.0)
 		self.end()
 	
-	def bounce(self, u)	
-	
+	def bounce(self, u):
+		super().bounce(self, u)
+
 	def output(self, move):
+		a = angle + move.angle
+
+		if a >= 360.0:
+			a = a - 360.0
+		elif a < 0.0:
+			a += 360.0
+
+		# Look for a point corresponding to the angle we want
+		# Multiply by 10000.0 to limit rounding errors
+		a = a * PI / 180.0
+		px = self.x + cos(a) * 10000.0
+		py = self.y + sin(a) * 10000.0
+
+		if move.shield:
+			print(round(px), round(py), "SHIELD")
+			activateShield()
+		else:
+			print(round(px), round(py), move.power)
+		
+		
+	def score(self):
+		return checked*50000 - self.distance(self.checkpoint())
 	
+###################################################################################################################################################################
 class Collision:
 	def __init__(self, ua, ub, t):
 		self.ua = ua
 		self.ub = ub
 		self.t = t
 	
+###################################################################################################################################################################
 class Solution:
 	def __init__(self):
-		return
-	def randomize(self)
+		self.moves1 = []
+		self.moves2 = []
 	
+	def score(self):
+		# Play out the turns
+		for i in range(len(moves1)):
+			# Apply the moves to the pods before playing
+			myPod1.apply(moves1[i])
+			myPod2.apply(moves2[i])
+			play()
+		# Compute the score
+		result = evaluation()
+		# Reset everyone to their initial states
+		load()
+		return result
+
+###################################################################################################################################################################
 class Move:
 	def __init__(self):
-		return
-	def mutate(self, amplitude)
+		self.angle = 0 # Between -18.0 and +18.0
+		self.thrust = 0 # Between -1 and 200. If -1, corresponds to when shield is on
+	
+	def mutate(self, amplitude):
+		ramin = self.angle - 36.0 * amplitude
+		ramax = self.angle + 36.0 * amplitude
+
+		if ramin < -18.0:
+			ramin = -18.0
+
+		if ramax > 18.0:
+			ramax = 18.0
+
+		angle = rd.random(ramin, ramax)
+
+		if not self.shield and rd.random(0, 100) < SHIELD_PROB:
+			self.shield = true
+		else;
+			pmin = self.thrust - 200 * amplitude
+			pmax = self.thrust + 200 * amplitude
+
+			if pmin < 0:
+				pmin = 0
+
+			if pmax > 0:
+				pmax = 200
+
+			self.thrust = rd.random(pmin, pmax)
+			self.shield = false
+
 
 	
-	
-	
+###################################################################################################################################################################
+### MAIN FUNCTIONS
 
+###################################################################################################################################################################
 def play(pods, checkpoints):
     # This tracks the time during the turn. The goal is to reach 1.0
     t = 0.0
@@ -266,13 +348,13 @@ def play(pods, checkpoints):
         firstCollision = None
 
         # We look for all the collisions that are going to occur during the turn
-        for int i = 0; i < pods.length; ++i:
+        for i in range(len(pods)):
             # Collision with another pod?
-            for int j = i + 1; j < pods.length; ++j:
+            for j in range (i+1, len(pods)):
                 col = pods[i].collision(pods[j])
 
                 # If the collision occurs earlier than the one we currently have we keep it
-                if col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t):
+                if col != None and col.t + t < 1.0 and (firstCollision == None or col.t < firstCollision.t):
                     firstCollision = col
 
             # Collision with another checkpoint?
@@ -281,12 +363,12 @@ def play(pods, checkpoints):
             col = pods[i].collision(checkpoints[pods[i].nextCheckpointId])
 
             # If the collision happens earlier than the current one we keep it
-            if col != null && col.t + t < 1.0 && (firstCollision == null || col.t < firstCollision.t):
+            if col != null and col.t + t < 1.0 and (firstCollision == None or col.t < firstCollision.t):
                 firstCollision = col
             
         if firstCollision == None:
             # No collision, we can move the pods until the end of the turn
-            for (int i = 0; i < pods.length; ++i:
+            for i in range(len(pods)):
                 pods[i].move(1.0 - t)
             
             # End of the turn
@@ -294,7 +376,7 @@ def play(pods, checkpoints):
 				 
         else:
             # Move the pods to reach the time `t` of the collision
-            for int i = 0; i < pods.length; ++i:
+            for i in range(len(pods)):
                 pods[i].move(firstCollision.t)
             
             # Play out the collision
@@ -302,14 +384,36 @@ def play(pods, checkpoints):
 
             t += firstCollision.t
       
-    for int i = 0; i < pods.length; ++i:
+    for i in range(len(pods)):
         pods[i].end()
     
 
+###################################################################################################################################################################
+def test(pods, checkpoints):
+    for i in range(len(pods)):
+        pods[i].rotate(Point(8000, 4500))
+        pods[i].boost(200)
+		
+		play(pods, checkpoints)
 
+		
+###################################################################################################################################################################
+### MAIN
 
+		
+solutions = generatePopulation()
 
+while time < 150:
+    solution = solutions[rd.random(0, X)].mutate()
 
+    if solution.score() > minScore:
+        keepSolution()
+		
+
+	
+
+		
+		
 # Auto-generated code below aims at helping you parse
 # the standard input according to the problem statement.
 
